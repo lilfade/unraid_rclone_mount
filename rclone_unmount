@@ -15,11 +15,11 @@
 # NOTE: This only handles one mount instance. If you have multiple rclone
 #       mounts, add manual entries for each mount.
 
-RcloneRemoteName="gdrive_vfs" # Name of rclone remote mount WITHOUT ':'.
-RcloneMountShare="/mnt/user/mount_rclone"
-LocalFilesShare="/mnt/user/local"
-RcloneCacheShare="/mnt/user0/mount_rclone"
-MergerfsMountShare="/mnt/user/mount_mergerfs"
+RcloneRemoteName="gdrive_media_vfs" # Name of rclone remote mount WITHOUT ':'.
+RcloneMountShare="/mnt/user/cloud/rcloneVFS"
+LocalFilesShare="/mnt/user/cloud/cache"
+RcloneCacheShare="/mnt/user0/cloud/rcloneVFS"
+MergerfsMountShare="/mnt/user/cloud/media"
 
 # END SETTINGS
 
