@@ -15,15 +15,16 @@
 # 4. Optional: include extra folders in mergerfs mount
 
 # REQUIRED SETTINGS
-RcloneRemoteName="gdrive_vfs" # Name of rclone remote mount WITHOUT ':'. NOTE: Choose your encrypted remote for sensitive data
-RcloneMountShare="/mnt/user/mount_rclone" # where your rclone remote will be located without trailing slash  e.g. /mnt/user/mount_rclone
+RcloneRemoteName="gdrive_media_vfs" # Name of rclone remote mount WITHOUT ':'. NOTE: Choose your encrypted remote for sensitive data, defaults to encrypted mount
+RcloneMountShare="/mnt/user/cloud/rcloneVFS" # where your rclone remote will be located without trailing slash  e.g. /mnt/user/mount_rclone
 RcloneMountDirCacheTime="720h" # rclone dir cache time
-LocalFilesShare="/mnt/user/local" # location of the local files and MountFolders you want to upload without trailing slash to rclone e.g. /mnt/user/local. Enter 'ignore' to disable
-RcloneCacheShare="/mnt/user0/mount_rclone" # location of rclone cache files without trailing slash e.g. /mnt/user0/mount_rclone
+LocalFilesShare="/mnt/user/cloud/cache" # location of the local files and MountFolders you want to upload without trailing slash to rclone e.g. /mnt/user/local. Enter 'ignore' to disable
+RcloneCacheShare="/mnt/user0/cloud/rcloneVFS" # location of rclone cache files without trailing slash e.g. /mnt/user0/mount_rclone
 RcloneCacheMaxSize="400G" # Maximum size of rclone cache
 RcloneCacheMaxAge="336h" # Maximum age of cache files
-MergerfsMountShare="/mnt/user/mount_mergerfs" # location without trailing slash  e.g. /mnt/user/mount_mergerfs. Enter 'ignore' to disable
-DockerStart="nzbget plex sonarr radarr ombi" # list of dockers, separated by space, to start once mergerfs mount verified. Remember to disable AUTOSTART for dockers added in docker settings page
+MergerfsMountShare="/mnt/user/cloud/media" # location without trailing slash  e.g. /mnt/user/mount_mergerfs. Enter 'ignore' to disable
+ProcessDockers="N" # Y/N. Choose if you want to skip docker script process (skip = N)
+DockerStart="nzbget" # list of dockers, separated by space, to start once mergerfs mount verified. Remember to disable AUTOSTART for dockers added in docker settings page
 MountFolders=\{"downloads/complete,downloads/intermediate,downloads/seeds,movies,tv"\} # comma separated list of folders to create within the mount
 
 # Note: Again - remember to NOT use ':' in your remote name above
@@ -49,6 +50,9 @@ CreateBindMount="N" # Y/N. Choose whether to bind traffic to a particular networ
 RCloneMountIP="192.168.1.252" # My unraid IP is 172.30.12.2 so I create another similar IP address
 NetworkAdapter="eth0" # choose your network adapter. eth0 recommended
 VirtualIPNumber="2" # creates eth0:x e.g. eth0:1.  I create a unique virtual IP addresses for each mount & upload so I can monitor and traffic shape for each of them
+
+# Misc.
+RemoteUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
 
 ####### END SETTINGS #######
 
@@ -133,21 +137,29 @@ else
 	fi
 # create rclone mount
 	rclone mount \
-	$Command1 $Command2 $Command3 $Command4 $Command5 $Command6 $Command7 $Command8 \
+	--config /boot/config/plugins/rclone/.rclone.conf \
+	--user-agent $RemoteUserAgent \
 	--allow-other \
-	--umask 000 \
+	--use-mmap \
 	--dir-cache-time $RcloneMountDirCacheTime \
+	--cache-dir "$RcloneCacheShare/cache/$RcloneRemoteName" \
+	--timeout 60s \
+	--umask 002 \
+	--allow-other \
+	--vfs-cache-mode full \
+	--vfs-read-ahead 4096M \
+	--vfs-read-chunk-size 128M \
+	--vfs-read-chunk-size-limit 256M \
+	--buffer-size 64M \
 	--attr-timeout $RcloneMountDirCacheTime \
 	--log-level INFO \
 	--poll-interval 10s \
-	--cache-dir=$RcloneCacheShare/cache/$RcloneRemoteName \
 	--drive-pacer-min-sleep 10ms \
 	--drive-pacer-burst 1000 \
-	--vfs-cache-mode full \
 	--vfs-cache-max-size $RcloneCacheMaxSize \
 	--vfs-cache-max-age $RcloneCacheMaxAge \
-	--vfs-read-ahead 1G \
 	--bind=$RCloneMountIP \
+	$Command1 \
 	$RcloneRemoteName: $RcloneMountLocation &
 
 # Check if Mount Successful
@@ -234,18 +246,22 @@ fi
 
 ####### Starting Dockers That Need Mergerfs Mount To Work Properly #######
 
-# only start dockers once
-if [[ -f "/mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/dockers_started" ]]; then
-	echo "$(date "+%d.%m.%Y %T") INFO: dockers already started."
-else
-# Check CA Appdata plugin not backing up or restoring
-	if [ -f "/tmp/ca.backup2/tempFiles/backupInProgress" ] || [ -f "/tmp/ca.backup2/tempFiles/restoreInProgress" ] ; then
-		echo "$(date "+%d.%m.%Y %T") INFO: Appdata Backup plugin running - not starting dockers."
+if [[  $ProcessDockers == 'Y' ]]; then
+	# only start dockers once
+	if [[ -f "/mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/dockers_started" ]]; then
+		echo "$(date "+%d.%m.%Y %T") INFO: dockers already started."
 	else
-		touch /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/dockers_started
-		echo "$(date "+%d.%m.%Y %T") INFO: Starting dockers."
-		docker start $DockerStart
+	# Check CA Appdata plugin not backing up or restoring
+		if [ -f "/tmp/ca.backup2/tempFiles/backupInProgress" ] || [ -f "/tmp/ca.backup2/tempFiles/restoreInProgress" ] ; then
+			echo "$(date "+%d.%m.%Y %T") INFO: Appdata Backup plugin running - not starting dockers."
+		else
+			touch /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/dockers_started
+			echo "$(date "+%d.%m.%Y %T") INFO: Starting dockers."
+			docker start $DockerStart
+		fi
 	fi
+else
+	echo "$(date "+%d.%m.%Y %T") INFO: *** Skipping Dockers"
 fi
 
 rm /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/mount_running

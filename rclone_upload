@@ -18,10 +18,10 @@
 
 # REQUIRED SETTINGS
 RcloneCommand="move" # choose your rclone command e.g. move, copy, sync
-RcloneRemoteName="gdrive_vfs" # Name of rclone remote mount WITHOUT ':'.
-RcloneUploadRemoteName="gdrive_upload_vfs" # If you have a second remote created for uploads put it here.  Otherwise use the same remote as RcloneRemoteName.
-LocalFilesShare="/mnt/user/local" # location of the local files without trailing slash you want to rclone to use
-RcloneMountShare="/mnt/user/mount_rclone" # where your rclone mount is located without trailing slash  e.g. /mnt/user/mount_rclone
+RcloneRemoteName="gdrive_media_vfs" # Name of rclone remote mount WITHOUT ':'.
+RcloneUploadRemoteName="gdrive_media_vfs" # If you have a second remote created for uploads put it here.  Otherwise use the same remote as RcloneRemoteName.
+LocalFilesShare="/mnt/user/cloud/cache" # location of the local files without trailing slash you want to rclone to use
+RcloneMountShare="/mnt/user/cloud/rcloneVFS" # where your rclone mount is located without trailing slash  e.g. /mnt/user/mount_rclone
 MinimumAge="15m" # sync files suffix ms|s|m|h|d|w|M|y
 ModSort="ascending" # "ascending" oldest files first, "descending" newest files first
 
@@ -31,9 +31,9 @@ ModSort="ascending" # "ascending" oldest files first, "descending" newest files 
 BWLimit1Time="01:00"
 BWLimit1="off"
 BWLimit2Time="08:00"
-BWLimit2="15M"
+BWLimit2="off"
 BWLimit3Time="16:00"
-BWLimit3="12M"
+BWLimit3="off"
 
 # OPTIONAL SETTINGS
 
@@ -42,13 +42,6 @@ JobName="_daily_upload" # Adds custom string to end of checker file.  Useful if 
 
 # Add extra commands or filters
 Command1="--exclude downloads/**"
-Command2=""
-Command3=""
-Command4=""
-Command5=""
-Command6=""
-Command7=""
-Command8=""
 
 # Bind the mount to an IP address
 CreateBindMount="N" # Y/N. Choose whether or not to bind traffic to a network adapter.
@@ -67,6 +60,10 @@ BackupJob="N" # Y/N. Syncs or Copies files from LocalFilesLocation to BackupRemo
 BackupRemoteLocation="backup" # choose location on mount for deleted sync files
 BackupRemoteDeletedLocation="backup_deleted" # choose location on mount for deleted sync files
 BackupRetention="90d" # How long to keep deleted sync files suffix ms|s|m|h|d|w|M|y
+
+
+# Misc.
+RemoteUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
 
 ####### END SETTINGS #######
 
@@ -166,7 +163,7 @@ fi
 
 # process files
 	rclone $RcloneCommand $LocalFilesLocation $RcloneUploadRemoteName:$BackupRemoteLocation $ServiceAccount $BackupDir \
-	--user-agent="$RcloneUploadRemoteName" \
+	--user-agent="$RemoteUserAgent" \
 	-vv \
 	--buffer-size 512M \
 	--drive-chunk-size 512M \
@@ -175,7 +172,7 @@ fi
 	--transfers 4 \
 	--order-by modtime,$ModSort \
 	--min-age $MinimumAge \
-	$Command1 $Command2 $Command3 $Command4 $Command5 $Command6 $Command7 $Command8 \
+	$Command1 \
 	--exclude *fuse_hidden* \
 	--exclude *_HIDDEN \
 	--exclude .recycle** \
