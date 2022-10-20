@@ -66,7 +66,7 @@ LocalFilesLocation="$LocalFilesShare/$RcloneRemoteName" # Location for local fil
 MergerFSMountLocation="$MergerfsMountShare/$RcloneRemoteName" # Rclone data folder location
 
 ####### create directories for rclone mount and mergerfs mounts #######
-mkdir -p /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName # for script files
+mkdir -p /mnt/user/appdata/rclone/remotes/$RcloneRemoteName # for script files
 mkdir -p $RcloneCacheShare/cache/$RcloneRemoteName # for cache files
 if [[  $LocalFilesShare == 'ignore' ]]; then
 	echo "$(date "+%d.%m.%Y %T") INFO: Not creating local folders as requested."
@@ -89,12 +89,12 @@ fi
 #######  Check if script is already running  #######
 echo "$(date "+%d.%m.%Y %T") INFO: *** Starting mount of remote ${RcloneRemoteName}"
 echo "$(date "+%d.%m.%Y %T") INFO: Checking if this script is already running."
-if [[ -f "/mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/mount_running" ]]; then
+if [[ -f "/mnt/user/appdata/rclone/remotes/$RcloneRemoteName/mount_running" ]]; then
 	echo "$(date "+%d.%m.%Y %T") INFO: Exiting script as already running."
 	exit
 else
 	echo "$(date "+%d.%m.%Y %T") INFO: Script not running - proceeding."
-	touch /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/mount_running
+	touch /mnt/user/appdata/rclone/remotes/$RcloneRemoteName/mount_running
 fi
 
 ####### Checking have connectivity #######
@@ -105,7 +105,7 @@ if [ $? -eq 0 ]; then # ping returns exit status 0 if successful
 	echo "$(date "+%d.%m.%Y %T") PASSED: *** Internet online"
 else
 	echo "$(date "+%d.%m.%Y %T") FAIL: *** No connectivity.  Will try again on next run"
-	rm /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/mount_running
+	rm /mnt/user/appdata/rclone/remotes/$RcloneRemoteName/mount_running
 	exit
 fi
 
@@ -172,7 +172,7 @@ else
 	else
 		echo "$(date "+%d.%m.%Y %T") CRITICAL: ${RcloneRemoteName} mount failed - please check for problems.  Stopping dockers"
 		docker stop $DockerStart
-		rm /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/mount_running
+		rm /mnt/user/appdata/rclone/remotes/$RcloneRemoteName/mount_running
 		exit
 	fi
 fi
@@ -191,9 +191,9 @@ else
 		else
 # Build mergerfs binary
 			echo "$(date "+%d.%m.%Y %T") INFO: Mergerfs not installed - installing now."
-			mkdir -p /mnt/user/appdata/other/rclone/mergerfs
-			docker run -v /mnt/user/appdata/other/rclone/mergerfs:/build --rm trapexit/mergerfs-static-build
-			mv /mnt/user/appdata/other/rclone/mergerfs/mergerfs /bin
+			mkdir -p /mnt/user/appdata/rclone/mergerfs
+			docker run -v /mnt/user/appdata/rclone/mergerfs:/build --rm trapexit/mergerfs-static-build
+			mv /mnt/user/appdata/rclone/mergerfs/mergerfs /bin
 # check if mergerfs install successful
 			echo "$(date "+%d.%m.%Y %T") INFO: *sleeping for 5 seconds"
 			sleep 5
@@ -201,7 +201,7 @@ else
 				echo "$(date "+%d.%m.%Y %T") INFO: Mergerfs installed successfully, proceeding to create mergerfs mount."
 			else
 				echo "$(date "+%d.%m.%Y %T") ERROR: Mergerfs not installed successfully.  Please check for errors.  Exiting."
-				rm /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/mount_running
+				rm /mnt/user/appdata/rclone/remotes/$RcloneRemoteName/mount_running
 				exit
 			fi
 		fi
@@ -238,7 +238,7 @@ else
 		else
 			echo "$(date "+%d.%m.%Y %T") CRITICAL: ${RcloneRemoteName} mergerfs mount failed.  Stopping dockers."
 			docker stop $DockerStart
-			rm /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/mount_running
+			rm /mnt/user/appdata/rclone/remotes/$RcloneRemoteName/mount_running
 			exit
 		fi
 	fi
@@ -248,14 +248,14 @@ fi
 
 if [[  $ProcessDockers == 'Y' ]]; then
 	# only start dockers once
-	if [[ -f "/mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/dockers_started" ]]; then
+	if [[ -f "/mnt/user/appdata/rclone/remotes/$RcloneRemoteName/dockers_started" ]]; then
 		echo "$(date "+%d.%m.%Y %T") INFO: dockers already started."
 	else
 	# Check CA Appdata plugin not backing up or restoring
 		if [ -f "/tmp/ca.backup2/tempFiles/backupInProgress" ] || [ -f "/tmp/ca.backup2/tempFiles/restoreInProgress" ] ; then
 			echo "$(date "+%d.%m.%Y %T") INFO: Appdata Backup plugin running - not starting dockers."
 		else
-			touch /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/dockers_started
+			touch /mnt/user/appdata/rclone/remotes/$RcloneRemoteName/dockers_started
 			echo "$(date "+%d.%m.%Y %T") INFO: Starting dockers."
 			docker start $DockerStart
 		fi
@@ -264,7 +264,7 @@ else
 	echo "$(date "+%d.%m.%Y %T") INFO: *** Skipping Dockers"
 fi
 
-rm /mnt/user/appdata/other/rclone/remotes/$RcloneRemoteName/mount_running
+rm /mnt/user/appdata/rclone/remotes/$RcloneRemoteName/mount_running
 echo "$(date "+%d.%m.%Y %T") INFO: Script complete"
 
 exit
